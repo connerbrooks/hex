@@ -7,22 +7,34 @@ document.body.appendChild( renderer.domElement );
 
 var t = THREE;
 
+var vr = false;
+
 var clock = new THREE.Clock();
 
 //Create a three.js scene
 var scene = new THREE.Scene();
 
 //Create a three.js camera
-var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 2, 10000 );
+if (vr)
+  var camera = new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 2, 10000 );
+else
+  var camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 2, 10000 );
 scene.add(camera);
 
+camera.position.set(80, 100, 150);
+camera.rotation.x = -45 * Math.PI / 180;
+
 //Apply VR headset positional data to camera.
-//var controls = new THREE.VRControls( camera );
+var controls = new THREE.VRControls( camera );
 
 //Apply VR stereo rendering to renderer
-//var effect = new THREE.VREffect( renderer );
-//effect.setSize( window.innerWidth, window.innerHeight );
-renderer.setSize( window.innerWidth, window.innerHeight );
+if (vr) {
+  var effect = new THREE.VREffect( renderer );
+  effect.setSize( window.innerWidth, window.innerHeight );
+}
+else {
+  renderer.setSize( window.innerWidth, window.innerHeight );
+}
 
 /*
 Hex game
@@ -64,7 +76,7 @@ for(var i = 0; i < boardSize; i++) {
 
     cgeo = new t.CylinderGeometry(hexSize, hexSize, 3, 6);
     cmat = new t.MeshBasicMaterial({color: 0x666666});
-    cmatout = new t.MeshBasicMaterial({color: 0x000, wireframe: true, transparent: true});
+    cmatout = new t.MeshBasicMaterial({color: 0x000, wireframe: true, wireframeLinewidth: 2, transparent: true});
 
     // add hexagons and outlines
     hex[i * boardSize + j] = new t.Mesh(cgeo, cmat);
@@ -75,7 +87,6 @@ for(var i = 0; i < boardSize; i++) {
     hexOutlines[i * boardSize + j].hover = false;
 
     // place pieces in a rhombus grid
-
     hexRad = hexSize * 2;
 
     hex[i * boardSize + j].position.set(
@@ -98,8 +109,6 @@ for(var i = 0; i < boardSize; i++) {
 
 var currentPlayer = true;
 
-camera.position.set(50, 125, 40);
-camera.rotation.x = -90 * Math.PI / 180;
 
 var raycaster = new THREE.Raycaster();
 var raycaster1 = new THREE.Raycaster();
@@ -131,11 +140,13 @@ function onMouseClick( event ) {
           }
 
           // play nice sounds
+          /*
           var sine1 = T("sin", {freq:330, mul:0.5});
           var sine2 = T("sin", {freq:40, mul:0.5});
           T("phaser", {r:200}, sine1, sine2).on("ended", function() {
             this.pause();
           }).bang().play();
+          */
 
           currentPlayer = !currentPlayer; // change player
           obj.played = true; // set value
@@ -169,7 +180,10 @@ function animate() {
   /*
     highlight and play tone
   */
+  if (vr)
+    mouse = new t.Vector2(0, 0); // if vr use center of screen as point
   raycaster1.setFromCamera( mouse, camera );
+
 	// calculate objects intersecting the picking ray
 	var intersects = raycaster1.intersectObjects( scene.children );
 
@@ -188,15 +202,18 @@ function animate() {
 
 
   //Update VR headset position and apply to camera.
-  //controls.update();
+  if (vr)
+    controls.update();
 
   var delta = clock.getDelta(),
 			time = clock.getElapsedTime() * 10;
   //controls.update( delta );
 
   // Render the scene through the VREffect.
-  //effect.render( scene, camera );
-  renderer.render( scene, camera );
+  if (vr)
+    effect.render( scene, camera );
+  else
+    renderer.render( scene, camera );
   requestAnimationFrame( animate );
 }
 
@@ -238,7 +255,9 @@ Handle window resizes
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-  //effect.setSize( window.innerWidth, window.innerHeight );
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  if (vr)
+    effect.setSize( window.innerWidth, window.innerHeight );
+  else
+    renderer.setSize( window.innerWidth, window.innerHeight );
 }
 window.addEventListener( 'resize', onWindowResize, false );
