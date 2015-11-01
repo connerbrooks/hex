@@ -1,82 +1,185 @@
-// Setup three.js WebGL renderer
-var renderer = new THREE.WebGLRenderer( { antialias: true } );
-
-
-// Append the canvas element created by the renderer to document body element.
-document.body.appendChild( renderer.domElement );
-
 var t = THREE;
-
 var vr = false;
 
-var clock = new THREE.Clock();
+/*
+ * General Setup
+ */
+
+// Setup three.js WebGL renderer
+var renderer = new t.WebGLRenderer( { antialias: true } );
+document.body.appendChild( renderer.domElement );
+
+// setup button click events
+var restartBtn = document.getElementById('restartBtn');
+var toggleBtn = document.getElementById('toggleBtn');
+restartBtn.onclick = function(e) { restartGame() };
+toggleBtn.onclick = function(e) { toggleVR() };
 
 //Create a three.js scene
-var scene = new THREE.Scene();
+var scene = new t.Scene();
 
 //Create a three.js camera
-if (vr)
-  var camera = new THREE.PerspectiveCamera( 110, window.innerWidth / window.innerHeight, 2, 10000 );
-else
-  var camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 2, 10000 );
+var camera = new t.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 2, 10000 );
 scene.add(camera);
 
-camera.position.set(80, 100, 150);
+camera.position.set(100, 100, 150);
 camera.rotation.x = -45 * Math.PI / 180;
 
 //Apply VR headset positional data to camera.
-var controls = new THREE.VRControls( camera );
+var controls = new t.VRControls( camera );
 
 //Apply VR stereo rendering to renderer
-if (vr) {
-  var effect = new THREE.VREffect( renderer );
-  effect.setSize( window.innerWidth, window.innerHeight );
-}
-else {
-  renderer.setSize( window.innerWidth, window.innerHeight );
-}
+var effect = new t.VREffect( renderer );
+effect.setSize( window.innerWidth, window.innerHeight );
+renderer.setSize( window.innerWidth, window.innerHeight );
 
 /*
-Hex game
-*/
+ * Hex game
+ */
+var boardSize = 14,
+    hexSize = 4;
+var hexRad = hexSize * 2;
+var startLoc = new t.Vector3(0,0,0);
+
+// ai values
+var isAI = true;
+var aiTurn = false;
+
+var currentPlayer = false; // 2 player only false - p1, true - p2
+
+var playerColor1 = 0xFF4081;
+var playerColor2 = 0xC6FF00;
+
+var hex = [],
+    hexOutlines = [];
+
+var raycaster = new t.Raycaster(),
+    outlineRaycaster = new t.Raycaster();
+var mouse = new t.Vector2();
 
 /*
-Create, position, and add 3d objects
+web worker init
 */
-var geometry = new THREE.DodecahedronGeometry(10, 0);
-var material = new THREE.MeshBasicMaterial({wireframe: true, color: 0xFF4081 });
-material.side = THREE.DoubleSide;
-var dodecahedron = new THREE.Mesh( geometry, material );
-dodecahedron.position.z = 60;
-dodecahedron.position.y = 20;
+var hexWorker = new Worker('js/hexworker.js');
+hexWorker.onmessage = function(e) {
+    var data = e.data;
+    console.log('worker said ' + data);
+    switch(data.cmd) {
+      case 'aiplay':
+        // todo show AIs move
+        aiTurn = true;
+        var obj = hex[data.x * boardSize + data.y]
+        if (obj && !obj.played) {
+      		obj.material.color.set( currentPlayer ?  playerColor2 : playerColor1 ); // set player color
+          dodecahedron.material.color.set( currentPlayer ? playerColor1 : playerColor2 ); // play indicator
+          obj.played = true;
+
+          currentPlayer = !currentPlayer;
+          aiTurn = false;
+        } else {
+          hexWorker.postMessage({cmd: 'aiplay'});
+        }
+        break;
+    }
+};
+hexWorker.postMessage({cmd: 'start', boardSize: boardSize, isAI: isAI});
+
+/*
+player indicator, floor, and light
+*/
+var geometry = new t.DodecahedronGeometry(10, 0);
+var material = new t.MeshBasicMaterial({wireframe: true, color: 0xFF4081 });
+material.side = t.DoubleSide;
+var dodecahedron = new t.Mesh( geometry, material );
+dodecahedron.position.z = 0;
+dodecahedron.position.y = 30;
+dodecahedron.position.x = (boardSize * hexRad);
+
 scene.add(dodecahedron);
 
-
-var floor = new THREE.Mesh( new THREE.PlaneBufferGeometry( 1000, 1000, 1, 1 ), new THREE.MeshBasicMaterial( { color: 0x222222, side: THREE.DoubleSide } ) );
+var floor = new t.Mesh(
+                  new t.PlaneBufferGeometry( 1000, 1000, 1, 1 ),
+                  new t.MeshBasicMaterial( {
+                          color: 0x222222,
+                          side: t.DoubleSide
+                        })
+                      );
 floor.rotation.x = Math.PI/2;
 floor.position.y = -50;
 scene.add( floor );
 
-var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+var directionalLight = new t.DirectionalLight( 0xffffff, 0.5 );
 directionalLight.position.set( 0, 10, 0 );
 scene.add( directionalLight );
 
 /*
 board creation
 */
-var boardSize = 14,
-    hexSize = 4,
-    startLoc = new t.Vector3(0,0,0);
-var hex = [],
-    hexOutlines = [];
 
+// border for player goals
+for(var i = -1; i < boardSize+1; i++) {
+  for(var j = -1; j < boardSize+1; j++){
+    cgeo = new t.CylinderGeometry(hexSize, hexSize, 3, 6);
+
+    // do not draw border on shared hexagons
+    if (i < 0 && j < 0)
+      continue;
+    if (i == boardSize && j == boardSize)
+      continue;
+    if (i == boardSize && j == boardSize - 1)
+      continue;
+    if (j < 0 && i == boardSize)
+      continue;
+    if (i < 0 && j == boardSize)
+      continue;
+
+    if (i < 0 || i == boardSize) { // player1
+      cmatout = new t.MeshBasicMaterial({
+                    color: 0xe91e63,
+                    wireframe: true,
+                    wireframeLinewidth: 2,
+                    transparent: true });
+
+      borderWire = new t.Mesh(cgeo, cmatout);
+
+
+      borderWire.position.set(
+        (i * hexSize) + j * hexRad - startLoc.x,
+        startLoc.y,
+        i * hexRad - startLoc.z
+      )
+      scene.add( borderWire );
+
+    }
+    else if (j < 0 || j == boardSize) { //player 2
+      cmatout = new t.MeshBasicMaterial({
+                    color: 0xcddc39,
+                    wireframe: true,
+                    wireframeLinewidth: 2,
+                    transparent: true });
+      borderWire = new t.Mesh(cgeo, cmatout);
+
+      borderWire.position.set(
+        (i * hexSize) + j * hexRad - startLoc.x,
+        startLoc.y,
+        i * hexRad - startLoc.z
+      )
+      scene.add( borderWire );
+    }
+  }
+}
+
+// main game board
 for(var i = 0; i < boardSize; i++) {
   for(var j = 0; j < boardSize; j++){
-    // add hexagons
-
+    // geometry and materials
     cgeo = new t.CylinderGeometry(hexSize, hexSize, 3, 6);
     cmat = new t.MeshBasicMaterial({color: 0x666666});
-    cmatout = new t.MeshBasicMaterial({color: 0x000, wireframe: true, wireframeLinewidth: 2, transparent: true});
+    cmatout = new t.MeshBasicMaterial({
+                    color: 0x000,
+                    wireframe: true,
+                    wireframeLinewidth: 2,
+                    transparent: true });
 
     // add hexagons and outlines
     hex[i * boardSize + j] = new t.Mesh(cgeo, cmat);
@@ -84,16 +187,14 @@ for(var i = 0; i < boardSize; i++) {
 
     // set props
     hex[i * boardSize + j].played = false;
-    hexOutlines[i * boardSize + j].hover = false;
 
     // place pieces in a rhombus grid
-    hexRad = hexSize * 2;
-
     hex[i * boardSize + j].position.set(
       (i * hexSize) + j * hexRad - startLoc.x,
       startLoc.y,
       i * hexRad - startLoc.z
     );
+
     hexOutlines[i * boardSize + j].position.set(
       (i * hexSize) + j * hexRad - startLoc.x,
       startLoc.y,
@@ -106,15 +207,37 @@ for(var i = 0; i < boardSize; i++) {
 }
 
 
+function restartGame() {
+  hexWorker.postMessage({cmd: 'restart', boardSize: boardSize, isAI: isAI});
 
-var currentPlayer = true;
+  // clear all played hexagons
+  for (var i = 0; i < boardSize; i++) {
+    for (var j = 0; j < boardSize; j++) {
+      hex[i * boardSize + j].material.color.set(0x666666);
+      hex[i * boardSize + j].played = false;
+    }
+  }
+}
 
+function toggleVR() {
+  vr = !vr;
 
-var raycaster = new THREE.Raycaster();
-var raycaster1 = new THREE.Raycaster();
-var mouse = new THREE.Vector2();
+camera.position.set(100, 100, 150);
+  camera.rotation.x = -45 * Math.PI / 180;
+  camera.rotation.y = 0;
+  camera.rotation.z = 0;
+  if (vr)
+    camera.fov = 110;
+  else
+    camera.fov = 60;
 
-function onMouseClick( event ) {
+  onWindowResize();
+}
+
+/*
+  when user clicks on a hexagon change the color
+*/
+function onMouseDown( event ) {
 	// calculate mouse position in normalized device coordinates
 	// (-1 to +1) for both components
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
@@ -124,49 +247,40 @@ function onMouseClick( event ) {
 
   var intersects = raycaster.intersectObjects( scene.children );
 
-
   if (intersects[ 0 ].object.material.color) { // get first object intersected (hex tile)
-      obj = intersects[ 0 ].object;
+    obj = intersects[ 0 ].object;
 
-      if (hex.indexOf(obj) !== -1) {       // check if this is a hex piece
-        if (!obj.played) {
-          if (currentPlayer) {        // first player
-        		intersects[ 0 ].object.material.color.set( 0xFF4081 );
-            dodecahedron.material.color.set( 0xC6FF00 ); // play indicator
-          }
-          else { // second player
-        		intersects[ 0 ].object.material.color.set( 0xC6FF00 );
-            dodecahedron.material.color.set( 0xFF4081 ); // play indicator
-          }
+    var idx = hex.indexOf(obj);
 
-          // play nice sounds
-          /*
-          var sine1 = T("sin", {freq:330, mul:0.5});
-          var sine2 = T("sin", {freq:40, mul:0.5});
-          T("phaser", {r:200}, sine1, sine2).on("ended", function() {
-            this.pause();
-          }).bang().play();
-          */
+    if (idx !== -1) {       // check if this is a hex piece
 
-          currentPlayer = !currentPlayer; // change player
-          obj.played = true; // set value
-        }
+      var x = idx % boardSize, // column
+          y = Math.floor(idx / boardSize); // row
+
+      if (!obj.played && !aiTurn) {
+        hexWorker.postMessage({cmd: 'play', player: currentPlayer, x: x, y: y}); // send player move
+
+    		intersects[ 0 ].object.material.color.set( currentPlayer ?  playerColor2 : playerColor1 ); // set player color
+        dodecahedron.material.color.set( currentPlayer ? playerColor1 : playerColor2 ); // play indicator
+
+        // todo: play nice sounds
+
+        currentPlayer = !currentPlayer; // change player
+        obj.played = true; // set value
       }
     }
   }
+}
+
+window.addEventListener( 'mousedown', onMouseDown, false );
 
 function onMouseMove( event ) {
-
-	// calculate mouse position in normalized device coordinates
-	// (-1 to +1) for both components
-
+	// mouse pos (-1 to +1) for both components
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
 }
 
 window.addEventListener( 'mousemove', onMouseMove, false);
-window.addEventListener( 'mousedown', onMouseClick, false );
 
 
 /*
@@ -177,15 +291,12 @@ function animate() {
   dodecahedron.rotation.x += 0.01;
   dodecahedron.rotation.y += 0.005;
 
-  /*
-    highlight and play tone
-  */
-  if (vr)
-    mouse = new t.Vector2(0, 0); // if vr use center of screen as point
-  raycaster1.setFromCamera( mouse, camera );
+  if (vr) // if vr use center of screen as reticule
+    mouse = new t.Vector2(0, 0);
+  outlineRaycaster.setFromCamera( mouse, camera );
 
 	// calculate objects intersecting the picking ray
-	var intersects = raycaster1.intersectObjects( scene.children );
+	var intersects = outlineRaycaster.intersectObjects( scene.children );
 
   for ( var i = 0; i < intersects.length; i++ ) {
     obj = intersects[ i ].object;
@@ -193,39 +304,27 @@ function animate() {
   		obj.material.color.set( 0x44ffff );
       idx = hexOutlines.indexOf(obj);
 
-
       setTimeout(function(o) {
     		o.material.color.set( 0x000 );
       }, 100, obj);
     }
 	}
 
-
-  //Update VR headset position and apply to camera.
-  if (vr)
-    controls.update();
-
-  var delta = clock.getDelta(),
-			time = clock.getElapsedTime() * 10;
-  //controls.update( delta );
-
-  // Render the scene through the VREffect.
-  if (vr)
+  // Render the scene through the VREffect. Update controls
+  if (vr) {
     effect.render( scene, camera );
-  else
+    controls.update();
+  }
+  else {
     renderer.render( scene, camera );
+  }
+
   requestAnimationFrame( animate );
 }
 
 animate();	// Kick off animation loop
 
-/*
-Listen for double click event to enter full-screen mode.
-We listen for single click because that works best for mobile for now
-*/
-document.body.addEventListener( 'dblclick', function(){
-  effect.setFullScreen( true );
-})
+
 
 /*
 Listen for keyboard events
@@ -233,12 +332,15 @@ Listen for keyboard events
 function onkey(event) {
   event.preventDefault();
 
-  if (event.keyCode == 90) { // z
-    controls.resetSensor(); //zero rotation
-  } else if (event.keyCode == 70 || event.keyCode == 13) { //f or enter
-    effect.setFullScreen(true) //fullscreen
+  if (vr) {
+    if (event.keyCode == 90)  // z
+      controls.resetSensor(); //zero rotation
+    else if (event.keyCode == 70 || event.keyCode == 13) //f or enter
+      effect.setFullScreen(true) //fullscreen
   }
-  else if(event.keyCode == 87) // w
+
+  // some controls
+  if(event.keyCode == 87) // w
     camera.position.z -= 0.8;
   else if(event.keyCode == 83) // s
     camera.position.z += 0.8;
@@ -255,6 +357,8 @@ Handle window resizes
 function onWindowResize() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  //camera.position.z += Math.log(window.innerWidth) * 10;
+  console.log(camera.position.z);
   if (vr)
     effect.setSize( window.innerWidth, window.innerHeight );
   else

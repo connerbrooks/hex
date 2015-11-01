@@ -19,22 +19,59 @@ Hex Board Game
 				padding: 0;
 				overflow: hidden;
 			}
+			#ui {
+				position: absolute;
+				z-index: 10;
+				margin: 20px;
+			}
 		</style>
 	</head>
 
-	<body></body>
+		<body>
+			<div id='ui'>
+					<div class="mdl-card">
+				  <div class="mdl-card__title">
+						HEX
+				  </div>
+				  <div class="mdl-card__supporting-text">
+						Welcome to HEX, try and connect your color from one side to the other.
+						VR requires specific browser build: <a href="http://mozvr.com">Moz VR</a>.
+				  </div>
+				  <div class="mdl-card__actions">
+					<button class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect mdl-button--accent" id="restartBtn">
+						 Restart
+					</button>
+					<button class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect mdl-button--accent" id="toggleBtn">
+					   Toggle VR
+					</button>
+				  </div>
+				</div>
+		  </div>
+		</body>
+
+
+	<!--
+	material design listen
+	-->
+	<link rel="stylesheet" href="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.indigo-pink.min.css">
+	<script src="https://storage.googleapis.com/code.getmdl.io/1.0.5/material.min.js"></script>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
 	<!--
 	three.js 3d library
 	-->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r73/three.min.js"></script>
+
+	<!--
+	sounds
+	-->
 	<script src="http://mohayonao.github.io/timbre.js/timbre.js"></script>
 
 	<!--
 	PhoneVR acquires positional information from phone orientation. This is used by VRControls.js
 	VRControls.js acquires positional information from connected VR devices and applies the transformations to a three.js camera object.
 	 -->
-	<script src="js/vr/PhoneVR.js"></script>
+	<!--script src="js/vr/PhoneVR.js"></script-->
 	<script src="js/vr/VRControls.js"></script>
 	<script src="js/lib/FirstPersonControls.js"></script>
 
