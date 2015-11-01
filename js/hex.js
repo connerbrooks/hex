@@ -65,6 +65,14 @@ var raycaster = new t.Raycaster(),
     outlineRaycaster = new t.Raycaster();
 var mouse = new t.Vector2();
 
+
+// set center of orbit
+orbit.target = new t.Vector3(
+  (boardSize/2 * hexSize) + boardSize/2 * hexRad - startLoc.x,
+  startLoc.y,
+  boardSize/2 * hexRad - startLoc.z
+);
+
 /*
 web worker init
 */
@@ -328,8 +336,8 @@ function animate() {
   }
   else {
     renderer.render( scene, camera );
+    orbit.update();
   }
-  orbit.update();
 
   requestAnimationFrame( animate );
 }
