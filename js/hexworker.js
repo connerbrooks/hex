@@ -65,12 +65,14 @@ onmessage = function (e) {
       console.log('player: ' + (data.player ? 2 : 1) + ' x: ' + data.x + ' y: ' + data.y);
       logBoard();
       checkWin();
-      console.log(isAI);
       if (isAI)
         AIPlay();
       break;
     case 'aiplay':
       AIPlay();
+      break;
+    case 'ai_toggle':
+      isAI = data.isAI;
       break;
     case 'restart':
       gameBoard = createBoardRep(boardSize);

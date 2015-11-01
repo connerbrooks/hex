@@ -11,9 +11,16 @@ document.body.appendChild( renderer.domElement );
 
 // setup button click events
 var restartBtn = document.getElementById('restartBtn');
-var toggleBtn = document.getElementById('toggleBtn');
+var toggleVRBtn = document.getElementById('toggleVR');
+var toggleAI = document.getElementById('toggleAI');
 restartBtn.onclick = function(e) { restartGame() };
-toggleBtn.onclick = function(e) { toggleVR() };
+toggleVRBtn.onclick = function(e) {
+  toggleVR();
+};
+toggleAI.onclick = function(e) {
+  isAI = toggleAI.checked;
+  hexWorker.postMessage({cmd: 'ai_toggle', isAI: isAI});
+};
 
 //Create a three.js scene
 var scene = new t.Scene();
@@ -88,12 +95,9 @@ hexWorker.postMessage({cmd: 'start', boardSize: boardSize, isAI: isAI});
 player indicator, floor, and light
 */
 var geometry = new t.DodecahedronGeometry(10, 0);
-var material = new t.MeshBasicMaterial({wireframe: true, color: 0xFF4081 });
-material.side = t.DoubleSide;
+var material = new t.MeshBasicMaterial({wireframe: true, color: 0xFF4081, side: t.DoubleSide });
 var dodecahedron = new t.Mesh( geometry, material );
-dodecahedron.position.z = 0;
-dodecahedron.position.y = 30;
-dodecahedron.position.x = (boardSize * hexRad);
+dodecahedron.position.set((boardSize * hexRad), 30, 0);
 
 scene.add(dodecahedron);
 
@@ -240,8 +244,14 @@ camera.position.set(100, 100, 150);
 function onMouseDown( event ) {
 	// calculate mouse position in normalized device coordinates
 	// (-1 to +1) for both components
-	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+  if (vr) {
+    mouse.x = 0;
+    mouse.y = 0;
+  } else {
+  	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+  	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+  }
 
   raycaster.setFromCamera(mouse, camera);
 
@@ -335,8 +345,13 @@ function onkey(event) {
   if (vr) {
     if (event.keyCode == 90)  // z
       controls.resetSensor(); //zero rotation
-    else if (event.keyCode == 70 || event.keyCode == 13) //f or enter
+    else if (event.keyCode == 70 ) //f or enter
       effect.setFullScreen(true) //fullscreen
+    else if (event.key == 'Enter') {
+
+      console.log('ugh');
+      onMouseDown();
+    }
   }
 
   // some controls
