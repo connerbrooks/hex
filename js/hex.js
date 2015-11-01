@@ -139,8 +139,6 @@ for(var i = -1; i < boardSize+1; i++) {
       continue;
     if (i == boardSize && j == boardSize)
       continue;
-    if (i == boardSize && j == boardSize - 1)
-      continue;
     if (j < 0 && i == boardSize)
       continue;
     if (i < 0 && j == boardSize)
