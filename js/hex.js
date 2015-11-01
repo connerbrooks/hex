@@ -34,6 +34,7 @@ camera.rotation.x = -45 * Math.PI / 180;
 
 //Apply VR headset positional data to camera.
 var controls = new t.VRControls( camera );
+var orbit = new THREE.OrbitControls(camera, renderer.domElement);
 
 //Apply VR stereo rendering to renderer
 var effect = new t.VREffect( renderer );
@@ -328,6 +329,7 @@ function animate() {
   else {
     renderer.render( scene, camera );
   }
+  orbit.update();
 
   requestAnimationFrame( animate );
 }
