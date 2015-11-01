@@ -11,9 +11,15 @@ document.body.appendChild( renderer.domElement );
 
 // setup button click events
 var restartBtn = document.getElementById('restartBtn');
+var toggleMenuBtn = document.getElementById('toggleMenuBtn');
 var toggleVRBtn = document.getElementById('toggleVR');
 var toggleAI = document.getElementById('toggleAI');
 restartBtn.onclick = function(e) { restartGame() };
+
+toggleMenuBtn.onclick = function(e) {
+  var card = document.getElementById('card')
+  card.hidden = !card.hidden;
+};
 toggleVRBtn.onclick = function(e) {
   toggleVR();
 };

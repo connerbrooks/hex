@@ -29,7 +29,8 @@ Hex Board Game
 
 	<body>
 			<div id='ui'>
-					<div class="mdl-card">
+
+					<div id='card' class="mdl-card">
 				  <div class="mdl-card__title">
 						HEX
 				  </div>
@@ -52,8 +53,13 @@ Hex Board Game
 					<button class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect mdl-button--accent" id="restartBtn">
 						 Restart
 					</button>
+
 				  </div>
 				</div>
+
+				<button class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect mdl-button--accent" id="toggleMenuBtn">
+						 	Hide/Show
+					</button>
 		  </div>
 	</body>
 
@@ -76,7 +82,7 @@ Hex Board Game
 	<script src="http://mohayonao.github.io/timbre.js/timbre.js"></script>
 
 	<script src="js/vr/VRControls.js"></script>
-	
+
 	<script src="js/lib/FirstPersonControls.js"></script>
 	<script src="js/lib/OrbitControls.js"></script>
 
