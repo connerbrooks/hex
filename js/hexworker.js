@@ -31,10 +31,6 @@ function logBoard()
   }
 }
 
-function checkWin()
-{
-    // todo
-}
 
 function AIPlay()
 {
@@ -61,10 +57,9 @@ onmessage = function (e) {
       console.log('created board of size ' + boardSize);
       break;
     case 'play':
-      gameBoard[data.y][data.x] = (data.player ? 2 : 1);
+      gameBoard[data.y][data.x] = {player: (data.player ? 2 : 1) };
       console.log('player: ' + (data.player ? 2 : 1) + ' x: ' + data.x + ' y: ' + data.y);
       logBoard();
-      checkWin();
       if (isAI)
         AIPlay();
       break;

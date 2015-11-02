@@ -71,9 +71,20 @@ var raycaster = new t.Raycaster(),
     outlineRaycaster = new t.Raycaster();
 var mouse = new t.Vector2();
 
+// music
+var music = new Audio('sounds/Skiessi-C64.wav');
+music.loop = true;
+/*
+music.addEventListener('ended', function() {
+  this.currentTime = 0;
+  this.play();
+}, false);
+*/
+music.play();
+
 
 // set center of orbit
-orbit.target = new t.Vector3(
+orbit.target.set(
   (boardSize/2 * hexSize) + boardSize/2 * hexRad - startLoc.x,
   startLoc.y,
   boardSize/2 * hexRad - startLoc.z
@@ -283,10 +294,13 @@ function onMouseDown( event ) {
       if (!obj.played && !aiTurn) {
         hexWorker.postMessage({cmd: 'play', player: currentPlayer, x: x, y: y}); // send player move
 
-    		intersects[ 0 ].object.material.color.set( currentPlayer ?  playerColor2 : playerColor1 ); // set player color
+    		obj.material.color.set( currentPlayer ?  playerColor2 : playerColor1 ); // set player color
         dodecahedron.material.color.set( currentPlayer ? playerColor1 : playerColor2 ); // play indicator
 
         // todo: play nice sounds
+        var p1a = new Audio('sounds/player1.wav');
+        var p2a = new Audio('sounds/player2.wav');
+        (currentPlayer ? p2a.play() : p1a.play());
 
         currentPlayer = !currentPlayer; // change player
         obj.played = true; // set value
